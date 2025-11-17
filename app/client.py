@@ -67,28 +67,49 @@ def log_line(fh, text):
 
 def receiver_thread(sock, key, server_pub, transcript):
     """
-    Separate thread for receiving unexpected server messages.
-    In this assignment, server does not send chat data back.
+    Background thread responsible for passively listening for any
+    incoming messages from the server during the chat phase.
+
+    In this assignment, the server does not actively push messages
+    to the client, but a real chat system would use this thread to
+    receive incoming chat messages from other users or system events.
     """
     try:
+        # A timeout is used so the loop can periodically check whether
+        # chat_active flag is still set. Without this, recv() would block forever.
         sock.settimeout(1.0)
+
         while chat_active.is_set():
             try:
+                # Non-blocking wait for server messages.
                 packet = sock.recv(4096)
+
+                # If recv() returns empty data, it means the server closed the connection.
                 if not packet:
                     print("\n[Server disconnected.]")
                     chat_active.clear()
                     break
-                # If server sent messages, they'd be handled here.
+
+                # NOTE:
+                # In the actual assignment, the server does not send messages during chat.
+                # If it did, this is where we would decrypt, verify, and display them.
+
             except socket.timeout:
+                # Normal case: no data received during timeout window.
+                # Loop again to re-check chat_active flag.
                 continue
+
             except Exception as exc:
+                # Any other exception means a network error.
                 if chat_active.is_set():
                     print(f"[Receiver error: {exc}]")
                     chat_active.clear()
                 break
+
     finally:
+        # Remove timeout before thread exits to restore normal socket behavior.
         sock.settimeout(None)
+
 
 
 # ============================================================
