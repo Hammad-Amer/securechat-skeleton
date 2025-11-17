@@ -350,27 +350,58 @@ def handle_client(conn: socket.socket, addr):
 # Main server loop
 # ---------------------------
 def main():
-    # quick DB sanity check
+    """
+    Entry point for the secure chat server.
+    Responsible for:
+      - Ensuring DB connectivity
+      - Binding and listening on the TCP port
+      - Accepting incoming client connections
+      - Handing each client to handle_client() for full protocol flow
+    """
+
+    # Before starting the server, verify that the database is reachable.
+    # This prevents the server from running in a half-broken state.
     test_conn = get_db_connection()
     if not test_conn:
         print("CRITICAL: DB unavailable — aborting server start.")
         return
     test_conn.close()
 
+    # Create a TCP socket and configure it for incoming clients.
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as srv:
+        # Allow immediate reuse of the port after restarting the server.
         srv.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+
+        # Bind the server to HOST:PORT.
         srv.bind((HOST, PORT))
+
+        # Start listening for connection requests.
+        # '5' is the backlog (max queued pending connections).
         srv.listen(5)
         print(f"Server listening on {HOST}:{PORT}")
+
         try:
+            # Main loop — accept clients one at a time.
+            # (The assignment requires a single-threaded flow;
+            #  a real server would spawn a thread per client.)
             while True:
                 client_sock, client_addr = srv.accept()
-                # For simplicity (assignment), handle connections synchronously
+
+                # Pass the connection to the handler that performs:
+                # - certificate exchange
+                # - DH key exchange
+                # - authentication
+                # - encrypted chat session
                 handle_client(client_sock, client_addr)
+
         except KeyboardInterrupt:
+            # Graceful shutdown on Ctrl+C
             print("\nShutting down server.")
+
         finally:
+            # Explicit close for clarity, though context manager handles it.
             srv.close()
+
 
 
 if __name__ == "__main__":
