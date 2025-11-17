@@ -1,0 +1,17 @@
+config.py
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Virtual environments
+venv/
+ENV/
+
+# Local config file
+config.py
+
+# OS / editor files
+.DS_Store
+*.swp
